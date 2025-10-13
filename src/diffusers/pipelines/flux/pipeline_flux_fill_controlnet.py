@@ -699,6 +699,41 @@ class FluxFillControlNetPipeline(
         latents = self._pack_latents(latents, batch_size, num_channels_latents, height, width)
         return latents, latent_image_ids
 
+    def prepare_image(
+        self,
+        image,
+        width,
+        height,
+        batch_size,
+        num_images_per_prompt,
+        device,
+        dtype,
+        do_classifier_free_guidance=False,
+        guess_mode=False,
+    ):
+        if isinstance(image, torch.Tensor):
+            pass
+        else:
+            image = self.image_processor.preprocess(image, height=height, width=width)
+
+        image_batch_size = image.shape[0]
+
+        if image_batch_size == 1:
+            repeat_by = batch_size
+        else:
+            # image batch size is the same as prompt batch size
+            repeat_by = num_images_per_prompt
+
+        image = image.repeat_interleave(repeat_by, dim=0)
+
+        image = image.to(device=device, dtype=dtype)
+
+        if do_classifier_free_guidance and not guess_mode:
+            image = torch.cat([image] * 2)
+
+        return image
+
+
     @property
     def guidance_scale(self):
         return self._guidance_scale
@@ -919,19 +954,19 @@ class FluxFillControlNetPipeline(
         height, width = control_image.shape[-2:]
 
         # xlab controlnet has a input_hint_block and instantx controlnet does not
-        controlnet_blocks_repeat = False if self.controlnet.input_hint_block is None else True
-        if self.controlnet.input_hint_block is None:
-            control_image = retrieve_latents(self.vae.encode(control_image), generator=generator)
-            control_image = (control_image - self.vae.config.shift_factor) * self.vae.config.scaling_factor
+        # controlnet_blocks_repeat = False if self.controlnet.input_hint_block is None else True
+        # if self.controlnet.input_hint_block is None:
+        #     control_image = retrieve_latents(self.vae.encode(control_image), generator=generator)
+        #     control_image = (control_image - self.vae.config.shift_factor) * self.vae.config.scaling_factor
 
-            height_control_image, width_control_image = control_image.shape[2:]
-            control_image = self._pack_latents(
-                control_image,
-                batch_size * num_images_per_prompt,
-                num_channels_latents,
-                height_control_image,
-                width_control_image,
-            )
+        #     height_control_image, width_control_image = control_image.shape[2:]
+        #     control_image = self._pack_latents(
+        #         control_image,
+        #         batch_size * num_images_per_prompt,
+        #         self.vae.config.latent_channels,
+        #         height_control_image,
+        #         width_control_image,
+        #     )
 
         if control_mode is not None:
             control_mode = torch.tensor(control_mode).to(device, dtype=torch.long)

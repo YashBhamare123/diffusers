@@ -750,6 +750,7 @@ class FluxFillPipeline(
         callback_on_step_end: Optional[Callable[[int, int, Dict], None]] = None,
         callback_on_step_end_tensor_inputs: List[str] = ["latents"],
         max_sequence_length: int = 512,
+        cfg : float = 1.
     ):
         r"""
         Function invoked when calling the pipeline for generation.
@@ -972,7 +973,9 @@ class FluxFillPipeline(
         else:
             guidance = None
 
+
         # 7. Denoising loop
+        unconditional_embeds = torch.zeros(prompt_embeds.size(), dtype = prompt_embeds.dtype, device = prompt_embeds.device)
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
                 if self.interrupt:
@@ -980,8 +983,9 @@ class FluxFillPipeline(
 
                 # broadcast to batch dimension in a way that's compatible with ONNX/Core ML
                 timestep = t.expand(latents.shape[0]).to(latents.dtype)
-
-                noise_pred = self.transformer(
+                noise_pred = None
+                if (cfg == 1.):
+                    noise_pred_conditional = self.transformer(
                     hidden_states=torch.cat((latents, masked_image_latents), dim=2),
                     timestep=timestep / 1000,
                     guidance=guidance,
@@ -992,6 +996,34 @@ class FluxFillPipeline(
                     joint_attention_kwargs=self.joint_attention_kwargs,
                     return_dict=False,
                 )[0]
+                    noise_pred = noise_pred_conditional
+
+                else:
+                    noise_pred_conditional = self.transformer(
+                        hidden_states=torch.cat((latents, masked_image_latents), dim=2),
+                        timestep=timestep / 1000,
+                        guidance=guidance,
+                        pooled_projections=pooled_prompt_embeds,
+                        encoder_hidden_states=prompt_embeds,
+                        txt_ids=text_ids,
+                        img_ids=latent_image_ids,
+                        joint_attention_kwargs=self.joint_attention_kwargs,
+                        return_dict=False,
+                    )[0]
+
+                    noise_pred_unconditional = self.transformer(
+                        hidden_states=torch.cat((latents, masked_image_latents), dim=2),
+                        timestep=timestep / 1000,
+                        guidance=guidance,
+                        pooled_projections=pooled_prompt_embeds,
+                        encoder_hidden_states=unconditional_embeds,
+                        txt_ids=text_ids,
+                        img_ids=latent_image_ids,
+                        joint_attention_kwargs=self.joint_attention_kwargs,
+                        return_dict=False,
+                    )[0]
+
+                    noise_pred = noise_pred_unconditional + (noise_pred_conditional - noise_pred_unconditional) * cfg
 
                 # compute the previous noisy sample x_t -> x_t-1
                 latents_dtype = latents.dtype
