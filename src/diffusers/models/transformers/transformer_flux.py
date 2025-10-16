@@ -222,6 +222,7 @@ class FluxTransformer2DModel(
             Whether to use guidance embeddings for guidance-distilled variant of the model.
         axes_dims_rope (`Tuple[int]`, defaults to `(16, 56, 56)`):
             The dimensions to use for the rotary positional embeddings.
+
     """
 
     _supports_gradient_checkpointing = True
@@ -242,6 +243,7 @@ class FluxTransformer2DModel(
         pooled_projection_dim: int = 768,
         guidance_embeds: bool = False,
         axes_dims_rope: Tuple[int] = (16, 56, 56),
+        torch_compile_repeated : bool = False
     ):
         super().__init__()
         self.out_channels = out_channels or in_channels
@@ -259,27 +261,50 @@ class FluxTransformer2DModel(
         self.context_embedder = nn.Linear(joint_attention_dim, self.inner_dim)
         self.x_embedder = nn.Linear(in_channels, self.inner_dim)
 
-        self.transformer_blocks = nn.ModuleList(
+        if torch_compile_repeated:
+            self.transformer_blocks = nn.ModuleList(
             [
-                FluxTransformerBlock(
+                torch.compile(FluxTransformerBlock(
                     dim=self.inner_dim,
                     num_attention_heads=num_attention_heads,
                     attention_head_dim=attention_head_dim,
-                )
+                ))
                 for _ in range(num_layers)
             ]
-        )
+            )
 
-        self.single_transformer_blocks = nn.ModuleList(
+            self.single_transformer_blocks = nn.ModuleList(
             [
-                FluxSingleTransformerBlock(
+                torch.compile(FluxSingleTransformerBlock(
                     dim=self.inner_dim,
                     num_attention_heads=num_attention_heads,
                     attention_head_dim=attention_head_dim,
-                )
+                ))
                 for _ in range(num_single_layers)
             ]
-        )
+            )
+        else:
+            self.transformer_blocks = nn.ModuleList(
+                [
+                    FluxTransformerBlock(
+                        dim=self.inner_dim,
+                        num_attention_heads=num_attention_heads,
+                        attention_head_dim=attention_head_dim,
+                    )
+                    for _ in range(num_layers)
+                ]
+            )
+
+            self.single_transformer_blocks = nn.ModuleList(
+                [
+                    FluxSingleTransformerBlock(
+                        dim=self.inner_dim,
+                        num_attention_heads=num_attention_heads,
+                        attention_head_dim=attention_head_dim,
+                    )
+                    for _ in range(num_single_layers)
+                ]
+            )
 
         self.norm_out = AdaLayerNormContinuous(self.inner_dim, self.inner_dim, elementwise_affine=False, eps=1e-6)
         self.proj_out = nn.Linear(self.inner_dim, patch_size * patch_size * self.out_channels, bias=True)
