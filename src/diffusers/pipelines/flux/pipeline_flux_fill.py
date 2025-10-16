@@ -250,7 +250,6 @@ class FluxFillPipeline(
             self.tokenizer.model_max_length if hasattr(self, "tokenizer") and self.tokenizer is not None else 77
         )
         self.default_sample_size = 128
-        self.torch_compile = torch_compile_repeater
 
         
             
