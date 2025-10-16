@@ -210,7 +210,8 @@ class FluxFillPipeline(
         text_encoder_2: T5EncoderModel,
         tokenizer_2: T5TokenizerFast,
         transformer: FluxTransformer2DModel,
-        torch_compile_repeated : bool = True
+        torch_compile_repeated : bool = True,
+        **kwargs 
     ):
         super().__init__()
 
