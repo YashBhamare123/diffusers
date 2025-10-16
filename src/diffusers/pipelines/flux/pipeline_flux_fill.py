@@ -210,11 +210,10 @@ class FluxFillPipeline(
         text_encoder_2: T5EncoderModel,
         tokenizer_2: T5TokenizerFast,
         transformer: FluxTransformer2DModel,
-        torch_compile_repeated : bool = True,
         **kwargs 
     ):
         super().__init__()
-
+        torch_compile_repeated =  kwargs.pop('torch_compile_repeated', False)
         if torch_compile_repeated:
             transformer.single_transformer_blocks = nn.ModuleList([
                 torch.compile(block) for block in transformer.single_transformer_blocks
