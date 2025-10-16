@@ -17,6 +17,7 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 import numpy as np
 import torch
+import torch.nn as nn
 from transformers import CLIPTextModel, CLIPTokenizer, T5EncoderModel, T5TokenizerFast
 
 from ...image_processor import VaeImageProcessor
@@ -209,9 +210,19 @@ class FluxFillPipeline(
         text_encoder_2: T5EncoderModel,
         tokenizer_2: T5TokenizerFast,
         transformer: FluxTransformer2DModel,
+        torch_compile_repeated : bool = True
     ):
         super().__init__()
 
+        if torch_compile_repeated:
+            transformer.single_transformer_blocks = nn.ModuleList([
+                torch.compile(block) for block in transformer.single_transformer_blocks
+            ])
+
+            transformer.transformer_blocks = nn.ModuleList([
+                torch.compile(block) for block in transformer.transformer_blocks
+            ])
+        
         self.register_modules(
             vae=vae,
             text_encoder=text_encoder,
@@ -239,6 +250,10 @@ class FluxFillPipeline(
             self.tokenizer.model_max_length if hasattr(self, "tokenizer") and self.tokenizer is not None else 77
         )
         self.default_sample_size = 128
+        self.torch_compile = torch_compile_repeater
+
+        
+            
 
     # Copied from diffusers.pipelines.flux.pipeline_flux.FluxPipeline._get_t5_prompt_embeds
     def _get_t5_prompt_embeds(

@@ -243,7 +243,7 @@ class FluxTransformer2DModel(
         pooled_projection_dim: int = 768,
         guidance_embeds: bool = False,
         axes_dims_rope: Tuple[int] = (16, 56, 56),
-        torch_compile_repeated : bool = True
+        torch_compile_repeated : bool = False
     ):
         super().__init__()
         self.out_channels = out_channels or in_channels
