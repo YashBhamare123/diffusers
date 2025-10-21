@@ -694,7 +694,7 @@ class FluxFillControlNetPipeline(
         else:
             image_latents = torch.cat([image_latents], dim=0)
 
-        noise = randn_tensor(shape, generator=generator, device=device, dtype=dtype)
+        noise = randn_tensor(image_latents.shape, generator=generator, device=device, dtype=dtype)
         latents = self.scheduler.scale_noise(image_latents, timestep, noise)
         latents = self._pack_latents(latents, batch_size, num_channels_latents, height, width)
         return latents, latent_image_ids

@@ -182,11 +182,18 @@ class FlowMatchEulerDiscreteScheduler(SchedulerMixin, ConfigMixin):
                 The input sample.
             timestep (`int`, *optional*):
                 The current timestep in the diffusion chain.
+            noise (`torch.FloatTensor`, *optional*):
+                The noise tensor to be scaled with the sample. If not provided, 
+                random noise will be generated.
 
         Returns:
             `torch.FloatTensor`:
                 A scaled input sample.
         """
+        # Generate noise if not provided
+        if noise is None:
+            noise = torch.randn_like(sample)
+        
         # Make sure sigmas and timesteps have the same device and dtype as original_samples
         sigmas = self.sigmas.to(device=sample.device, dtype=sample.dtype)
 
