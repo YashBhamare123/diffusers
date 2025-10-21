@@ -1057,7 +1057,7 @@ class FluxFillControlNetPipeline(
 
         # 7. Denoising loop
         with torch.no_grad():
-            broadcast_layer = torch.nn.Linear(4 * self.controlnet.x_embedder.weight.size[1], self.controlnet.x_embedder.weight.size[0])
+            broadcast_layer = torch.nn.Linear(4 * self.controlnet.x_embedder.weight.size()[1], self.controlnet.x_embedder.weight.size()[0])
             broadcast_layer.weight.data = self.controlnet.x_embedder.weight.repeat([1, 4])
             broadcast_layer.bias.data = self.controlnet.x_embedder.bias
             self.controlnet.x_embedder = broadcast_layer
