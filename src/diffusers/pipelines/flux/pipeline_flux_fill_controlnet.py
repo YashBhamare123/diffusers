@@ -1062,7 +1062,7 @@ class FluxFillControlNetPipeline(
             broadcast_layer.bias.data = self.controlnet.x_embedder.bias
             self.controlnet.x_embedder = broadcast_layer
 
-        assert broadcast_layer.weight.size() == torch.Size([3072, 384]), f"sizes {broadcast_layer.weight.size()} and {torch.size([3072, 384])} do not match"
+        assert broadcast_layer.weight.size() == torch.Size([3072, 384]), f"sizes {broadcast_layer.weight.size()} and {torch.Size([3072, 384])} do not match"
 
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
