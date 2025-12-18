@@ -1108,12 +1108,12 @@ class FluxFillControlNetPipeline(
             controlnet_keep.append(keeps[0] if isinstance(self.controlnet, FluxControlNetModel) else keeps)
 
         # 7. Denoising loop
-        with torch.no_grad():
-            broadcast_layer = torch.nn.Linear(6 * self.controlnet.x_embedder.weight.size()[1], self.controlnet.x_embedder.weight.size()[0])
-            broadcast_layer.weight.data = self.controlnet.x_embedder.weight.repeat([1, 6])
-            broadcast_layer.bias.data = self.controlnet.x_embedder.bias
-            broadcast_layer.to(dtype = self.controlnet.x_embedder.weight.dtype, device = self.controlnet.x_embedder.weight.device)
-            self.controlnet.x_embedder = broadcast_layer
+        # with torch.no_grad():
+        #     broadcast_layer = torch.nn.Linear(6 * self.controlnet.x_embedder.weight.size()[1], self.controlnet.x_embedder.weight.size()[0])
+        #     broadcast_layer.weight.data = self.controlnet.x_embedder.weight.repeat([1, 6])
+        #     broadcast_layer.bias.data = self.controlnet.x_embedder.bias
+        #     broadcast_layer.to(dtype = self.controlnet.x_embedder.weight.dtype, device = self.controlnet.x_embedder.weight.device)
+        #     self.controlnet.x_embedder = broadcast_layer
 
         assert broadcast_layer.weight.size() == torch.Size([3072, 384]), f"sizes {broadcast_layer.weight.size()} and {torch.Size([3072, 384])} do not match"
 
