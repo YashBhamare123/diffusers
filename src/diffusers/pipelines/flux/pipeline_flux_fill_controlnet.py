@@ -954,19 +954,19 @@ class FluxFillControlNetPipeline(
         height, width = control_image.shape[-2:]
 
         # xlab controlnet has a input_hint_block and instantx controlnet does not
-        # controlnet_blocks_repeat = False if self.controlnet.input_hint_block is None else True
-        # if self.controlnet.input_hint_block is None:
-        #     control_image = retrieve_latents(self.vae.encode(control_image), generator=generator)
-        #     control_image = (control_image - self.vae.config.shift_factor) * self.vae.config.scaling_factor
+        controlnet_blocks_repeat = False if self.controlnet.input_hint_block is None else True
+        if self.controlnet.input_hint_block is None:
+            control_image = retrieve_latents(self.vae.encode(control_image), generator=generator)
+            control_image = (control_image - self.vae.config.shift_factor) * self.vae.config.scaling_factor
 
-        #     height_control_image, width_control_image = control_image.shape[2:]
-        #     control_image = self._pack_latents(
-        #         control_image,
-        #         batch_size * num_images_per_prompt,
-        #         self.vae.config.latent_channels,
-        #         height_control_image,
-        #         width_control_image,
-        #     )
+            height_control_image, width_control_image = control_image.shape[2:]
+            control_image = self._pack_latents(
+                control_image,
+                batch_size * num_images_per_prompt,
+                self.vae.config.latent_channels,
+                height_control_image,
+                width_control_image,
+            )
 
         if control_mode is not None:
             control_mode = torch.tensor(control_mode).to(device, dtype=torch.long)
@@ -1056,14 +1056,14 @@ class FluxFillControlNetPipeline(
             controlnet_keep.append(keeps[0] if isinstance(self.controlnet, FluxControlNetModel) else keeps)
 
         # 7. Denoising loop
-        # with torch.no_grad():
-            # broadcast_layer = torch.nn.Linear(6 * self.controlnet.x_embedder.weight.size()[1], self.controlnet.x_embedder.weight.size()[0])
-            # broadcast_layer.weight.data = self.controlnet.x_embedder.weight.repeat([1, 6])
-            # broadcast_layer.bias.data = self.controlnet.x_embedder.bias
-            # broadcast_layer.to(dtype = self.controlnet.x_embedder.weight.dtype, device = self.controlnet.x_embedder.weight.device)
-            # self.controlnet.x_embedder = broadcast_layer
+        with torch.no_grad():
+            broadcast_layer = torch.nn.Linear(6 * self.controlnet.x_embedder.weight.size()[1], self.controlnet.x_embedder.weight.size()[0])
+            broadcast_layer.weight.data = self.controlnet.x_embedder.weight.repeat([1, 6])
+            broadcast_layer.bias.data = self.controlnet.x_embedder.bias
+            broadcast_layer.to(dtype = self.controlnet.x_embedder.weight.dtype, device = self.controlnet.x_embedder.weight.device)
+            self.controlnet.x_embedder = broadcast_layer
 
-        # assert broadcast_layer.weight.size() == torch.Size([3072, 384]), f"sizes {broadcast_layer.weight.size()} and {torch.Size([3072, 384])} do not match"
+        assert broadcast_layer.weight.size() == torch.Size([3072, 384]), f"sizes {broadcast_layer.weight.size()} and {torch.Size([3072, 384])} do not match"
 
         with self.progress_bar(total=num_inference_steps) as progress_bar:
             for i, t in enumerate(timesteps):
