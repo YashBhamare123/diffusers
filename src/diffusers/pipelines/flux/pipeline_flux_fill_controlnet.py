@@ -972,6 +972,58 @@ class FluxFillControlNetPipeline(
             control_mode = torch.tensor(control_mode).to(device, dtype=torch.long)
             control_mode = control_mode.reshape([-1, 1])
 
+        if isinstance(self.controlnet, FluxMultiControlNetModel):
+            raise ValueError("its a fucking multicontrolnet model")
+            control_images = []
+            # xlab controlnet has a input_hint_block and instantx controlnet does not
+            controlnet_blocks_repeat = False if self.controlnet.nets[0].input_hint_block is None else True
+            for i, control_image_ in enumerate(control_image):
+                control_image_ = self.prepare_image(
+                    image=control_image_,
+                    width=width,
+                    height=height,
+                    batch_size=batch_size * num_images_per_prompt,
+                    num_images_per_prompt=num_images_per_prompt,
+                    device=device,
+                    dtype=self.vae.dtype,
+                )
+                height, width = control_image_.shape[-2:]
+
+                if self.controlnet.nets[0].input_hint_block is None:
+                    # vae encode
+                    control_image_ = retrieve_latents(self.vae.encode(control_image_), generator=generator)
+                    control_image_ = (control_image_ - self.vae.config.shift_factor) * self.vae.config.scaling_factor
+
+                    # pack
+                    height_control_image, width_control_image = control_image_.shape[2:]
+                    control_image_ = self._pack_latents(
+                        control_image_,
+                        batch_size * num_images_per_prompt,
+                        num_channels_latents,
+                        height_control_image,
+                        width_control_image,
+                    )
+                control_images.append(control_image_)
+
+            control_image = control_images
+
+            # Here we ensure that `control_mode` has the same length as the control_image.
+            if isinstance(control_mode, list) and len(control_mode) != len(control_image):
+                raise ValueError(
+                    "For Multi-ControlNet, `control_mode` must be a list of the same "
+                    + " length as the number of controlnets (control images) specified"
+                )
+            if not isinstance(control_mode, list):
+                control_mode = [control_mode] * len(control_image)
+            # set control mode
+            control_modes = []
+            for cmode in control_mode:
+                if cmode is None:
+                    cmode = -1
+                control_mode = torch.tensor(cmode).expand(control_images[0].shape[0]).to(device, dtype=torch.long)
+                control_modes.append(control_mode)
+            control_mode = control_modes
+        
         # 4. Prepare timesteps
         sigmas = np.linspace(1.0, 1 / num_inference_steps, num_inference_steps) if sigmas is None else sigmas
         image_seq_len = (int(height) // self.vae_scale_factor // 2) * (int(width) // self.vae_scale_factor // 2)
