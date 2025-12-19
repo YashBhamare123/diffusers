@@ -941,7 +941,6 @@ class FluxFillControlNetPipeline(
             lora_scale=lora_scale,
         )
 
-        prompt_embeds = prompt_embeds.repeat([1, 2, 1])
         print(f"prompt embedds for pormpt {prompt_embeds.size()}")
 
         # Control Net Prepare Function
