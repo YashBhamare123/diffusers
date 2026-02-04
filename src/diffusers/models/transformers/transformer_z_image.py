@@ -1030,6 +1030,7 @@ class ZImageTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOr
         print(unified.dtype)
         print(unified_mask.dtype)
         print(unified_freqs.dtype)
+        print(adaln_input.dtype)
 
         unified = self.layers_compiled(
             unified, unified_mask, unified_freqs, adaln_input
