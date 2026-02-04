@@ -1027,11 +1027,8 @@ class ZImageTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOr
         #     if controlnet_block_samples is not None and layer_idx in controlnet_block_samples:
         #         unified = unified + controlnet_block_samples[layer_idx]
 
-        print(unified.dtype)
-        print(unified_mask.dtype)
-        print(unified_freqs.dtype)
-        print(adaln_input.dtype)
-
+        unified_mask = unified_mask.to(dtype = torch.bfloat16)
+        adaln_input = adaln_input.to(dtype = torch.bfloat16)
         unified = self.layers_compiled(
             unified, unified_mask, unified_freqs, adaln_input
         )
