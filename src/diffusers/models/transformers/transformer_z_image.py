@@ -467,12 +467,12 @@ class ZImageTransformer2DModel(ModelMixin, ConfigMixin, PeftAdapterMixin, FromOr
         self.x_pad_token = nn.Parameter(torch.empty((1, dim)))
         self.cap_pad_token = nn.Parameter(torch.empty((1, dim)))
 
-        self.layers = nn.ModuleList(
-            [
-                ZImageTransformerBlock(layer_id, dim, n_heads, n_kv_heads, norm_eps, qk_norm)
-                for layer_id in range(n_layers)
-            ]
-        )
+        # self.layers = nn.ModuleList(
+        #     [
+        #         ZImageTransformerBlock(layer_id, dim, n_heads, n_kv_heads, norm_eps, qk_norm)
+        #         for layer_id in range(n_layers)
+        #     ]
+        # )
         self.layers_compiled = None
         head_dim = dim // n_heads
         assert head_dim == sum(axes_dims)
