@@ -143,7 +143,6 @@ class ZImagePipeline(DiffusionPipeline, ZImageLoraLoaderMixin, FromSingleFileMix
         self,
         scheduler: FlowMatchEulerDiscreteScheduler,
         vae: AutoencoderKL,
-        text_encoder: PreTrainedModel,
         tokenizer: AutoTokenizer,
         transformer: ZImageTransformer2DModel,
     ):
@@ -151,7 +150,6 @@ class ZImagePipeline(DiffusionPipeline, ZImageLoraLoaderMixin, FromSingleFileMix
 
         self.register_modules(
             vae=vae,
-            text_encoder=text_encoder,
             tokenizer=tokenizer,
             scheduler=scheduler,
             transformer=transformer,
