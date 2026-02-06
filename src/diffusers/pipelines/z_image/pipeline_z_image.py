@@ -239,8 +239,8 @@ class ZImagePipeline(DiffusionPipeline, ZImageLoraLoaderMixin, FromSingleFileMix
         # ).hidden_states[-2]
 
         prompt_embeds = self.text_encoder_compiled(
-            input_ids = text_input_ids,
-            attn_mask = prompt_masks,
+            text_input_ids,
+            prompt_masks,
         )
 
         embeddings_list = []
