@@ -160,6 +160,7 @@ class ZImagePipeline(DiffusionPipeline, ZImageLoraLoaderMixin, FromSingleFileMix
             2 ** (len(self.vae.config.block_out_channels) - 1) if hasattr(self, "vae") and self.vae is not None else 8
         )
         self.image_processor = VaeImageProcessor(vae_scale_factor=self.vae_scale_factor * 2)
+        self.text_encoder_compiled = None
 
     def encode_prompt(
         self,
@@ -233,11 +234,16 @@ class ZImagePipeline(DiffusionPipeline, ZImageLoraLoaderMixin, FromSingleFileMix
         text_input_ids = text_inputs.input_ids.to(device)
         prompt_masks = text_inputs.attention_mask.to(device).bool()
 
-        prompt_embeds = self.text_encoder(
-            input_ids=text_input_ids,
-            attention_mask=prompt_masks,
-            output_hidden_states=True,
-        ).hidden_states[-2]
+        # prompt_embeds = self.text_encoder(
+        #     input_ids=text_input_ids,
+        #     attention_mask=prompt_masks,
+        #     output_hidden_states=True,
+        # ).hidden_states[-2]
+
+        prompt_embeds = self.text_encoder_compiled(
+            input_ids = text_input_ids,
+            attn_mask = prompt_masks,
+        )
 
         embeddings_list = []
 
