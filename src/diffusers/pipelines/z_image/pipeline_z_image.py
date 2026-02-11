@@ -145,6 +145,7 @@ class ZImagePipeline(DiffusionPipeline, ZImageLoraLoaderMixin, FromSingleFileMix
         vae: AutoencoderKL,
         tokenizer: AutoTokenizer,
         transformer: ZImageTransformer2DModel,
+        text_encoder: PreTrainedModel,
     ):
         super().__init__()
 
@@ -153,6 +154,7 @@ class ZImagePipeline(DiffusionPipeline, ZImageLoraLoaderMixin, FromSingleFileMix
             tokenizer=tokenizer,
             scheduler=scheduler,
             transformer=transformer,
+            text_encoder = text_encoder
         )
         self.vae_scale_factor = (
             2 ** (len(self.vae.config.block_out_channels) - 1) if hasattr(self, "vae") and self.vae is not None else 8
@@ -232,16 +234,16 @@ class ZImagePipeline(DiffusionPipeline, ZImageLoraLoaderMixin, FromSingleFileMix
         text_input_ids = text_inputs.input_ids.to(device)
         prompt_masks = text_inputs.attention_mask.to(device).bool()
 
-        # prompt_embeds = self.text_encoder(
-        #     input_ids=text_input_ids,
-        #     attention_mask=prompt_masks,
-        #     output_hidden_states=True,
-        # ).hidden_states[-2]
+        prompt_embeds = self.text_encoder(
+            input_ids=text_input_ids,
+            attention_mask=prompt_masks,
+            output_hidden_states=True,
+        ).hidden_states[-2]
 
-        prompt_embeds = self.text_encoder_compiled(
-            text_input_ids,
-            prompt_masks,
-        )
+        # prompt_embeds = self.text_encoder_compiled(
+        #     text_input_ids,
+        #     prompt_masks,
+        # )
 
         embeddings_list = []
 
