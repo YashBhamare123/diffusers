@@ -30,7 +30,11 @@ from .pipeline_output import CosmosPipelineOutput
 
 
 if is_cosmos_guardrail_available():
-    from cosmos_guardrail import CosmosSafetyChecker
+    grad_enabled = torch.is_grad_enabled()
+    try:
+        from cosmos_guardrail import CosmosSafetyChecker
+    finally:
+        torch.set_grad_enabled(grad_enabled)
 else:
 
     class CosmosSafetyChecker:
@@ -177,7 +181,11 @@ class CosmosTextToWorldPipeline(DiffusionPipeline):
         super().__init__()
 
         if safety_checker is None:
-            safety_checker = CosmosSafetyChecker()
+            grad_enabled = torch.is_grad_enabled()
+            try:
+                safety_checker = CosmosSafetyChecker()
+            finally:
+                torch.set_grad_enabled(grad_enabled)
 
         self.register_modules(
             vae=vae,

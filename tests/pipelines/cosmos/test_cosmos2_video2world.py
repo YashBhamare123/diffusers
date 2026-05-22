@@ -17,6 +17,7 @@ import json
 import os
 import tempfile
 import unittest
+from unittest import mock
 
 import numpy as np
 import PIL.Image
@@ -44,6 +45,12 @@ class Cosmos2VideoToWorldPipelineWrapper(Cosmos2VideoToWorldPipeline):
     def from_pretrained(*args, **kwargs):
         kwargs["safety_checker"] = DummyCosmosSafetyChecker()
         return Cosmos2VideoToWorldPipeline.from_pretrained(*args, **kwargs)
+
+
+class GradDisablingCosmosSafetyChecker(DummyCosmosSafetyChecker):
+    def __init__(self) -> None:
+        super().__init__()
+        torch.set_grad_enabled(False)
 
 
 class Cosmos2VideoToWorldPipelineFastTests(PipelineTesterMixin, unittest.TestCase):
@@ -163,6 +170,28 @@ class Cosmos2VideoToWorldPipelineFastTests(PipelineTesterMixin, unittest.TestCas
         pipe = self.pipeline_class(**init_components)
         self.assertTrue(hasattr(pipe, "components"))
         self.assertTrue(set(pipe.components.keys()) == set(init_components.keys()))
+
+    def test_constructor_preserves_grad_mode_when_default_safety_checker_changes_it(self):
+        components = {
+            "transformer": None,
+            "vae": None,
+            "scheduler": None,
+            "text_encoder": None,
+            "tokenizer": None,
+        }
+        grad_enabled = torch.is_grad_enabled()
+
+        try:
+            torch.set_grad_enabled(True)
+            with mock.patch(
+                "diffusers.pipelines.cosmos.pipeline_cosmos2_video2world.CosmosSafetyChecker",
+                GradDisablingCosmosSafetyChecker,
+            ):
+                self.pipeline_class(**components)
+
+            self.assertTrue(torch.is_grad_enabled())
+        finally:
+            torch.set_grad_enabled(grad_enabled)
 
     def test_callback_inputs(self):
         sig = inspect.signature(self.pipeline_class.__call__)
